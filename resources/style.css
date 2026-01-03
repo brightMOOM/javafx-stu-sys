@@ -1,0 +1,44 @@
+ .vbox {
+    -fx-background-color: #f8f9fa;
+    -fx-background-radius: 8px;
+    -fx-border-color: #e9ecef;
+    -fx-border-radius: 8px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.05), 5, 0, 0, 2);
+}
+  .label {
+  -fx-font-family: "微软雅黑";
+        -fx-font-size: 18px;
+    }
+   	.label-bold{
+     -fx-font-family: "微软雅黑";
+     -fx-font-size: 18px;
+     -fx-font-weight:bold;
+    }
+    
+.info-card {
+    -fx-background-color: #f8f9fa;
+    -fx-background-radius: 8px;
+    -fx-border-color: #e9ecef;
+    -fx-border-width: 1px; /* 补充边框宽度，否则看不到边框 */
+    -fx-border-radius: 4px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.05), 5, 0, 0, 2);
+    -fx-padding: 15px; /* 内边距，避免内容贴边 */
+}
+.head{
+    -fx-background-color: #1E90FF; /* 道奇蓝，比纯blue更柔和 */
+    -fx-text-fill: #FFFFFF; 
+    -fx-font-family: "微软雅黑";
+    -fx-font-size: 16px; /* 从14px加大到16px */
+    -fx-font-weight: bold; /* 加粗（替代normal） */
+    -fx-padding: 10px 15px; /* 上下10px，左右15px */
+    /* 可选：文字居中（视觉更舒适） */
+    -fx-alignment: center-left; /* 左对齐（或center居中） */
+    /* 可选：圆角美化背景，弱化边框感 */
+    -fx-background-radius: 4px;
+}
+.table-view {
+    -fx-pref-width: 800px;   // 首选宽度
+    -fx-min-width: 800px;    // 最小宽度
+    -fx-max-width: 6000px;    // 最大宽度
+    
+}

@@ -1,16 +1,20 @@
 package client;
 
+import Student.Student;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.control.*;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.PasswordField;
+import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
+import sql.StuMysql;
 
 public class Login {
-
     private GridPane root;
     private Stage stage;
 
@@ -33,14 +37,14 @@ public class Login {
         Label msgLabel = new Label();
 
         loginBtn.setOnAction(e -> {
-            String user = userField.getText();
+        	int userid = Integer.parseInt(userField.getText());
             String pass = passField.getText();
 
-            if ("admin".equals(user) && "123456".equals(pass)) {
+            if (StuMysql.queryList(userid,pass)==true) {
                 msgLabel.setText("登录成功");
                 msgLabel.setStyle("-fx-text-fill: green;");
                 // 切换到主界面
-                Student student = new Student(stage);
+                Student student = new Student(stage,userid);
                 stage.setScene(new Scene(student.getView(), 1000, 700));
                 stage.setTitle("学生界面");
             } else {

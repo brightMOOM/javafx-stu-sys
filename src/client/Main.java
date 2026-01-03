@@ -13,6 +13,8 @@ public class Main extends Application {
         Scene scene = new Scene(login.getView(), 350, 250);
         stage.setTitle("登录系统");
         stage.setScene(scene);
+        stage.setX(300);
+        stage.setY(100);
         stage.show();
     }
 

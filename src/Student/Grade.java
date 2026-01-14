@@ -1,199 +1,169 @@
 package Student;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
-
 import javafx.geometry.Insets;
-import javafx.scene.control.Button;
-import javafx.scene.control.ComboBox;
-import javafx.scene.control.Label;
-import javafx.scene.control.TableCell;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableView;
+import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
-import javafx.util.Callback;
 import sql.StuMysql;
 import stamet.StyleUtils;
 
 public class Grade extends VBox {
-    private final int sid;
-
-    private ComboBox<String> termSelect = new ComboBox<>();
+    private int sid;
     private TableView<GradeData> gradeTable;
-    private Label avgLabel = new Label();
-
-    private List<GradeData> allGrades = new ArrayList<>();
+    private List<GradeData> allGrades;
+    private ComboBox<String> termCombo;
+    private Label avgLabel;
     private int currentPage = 1;
     private final int pageSize = 5;
+    private HBox pagination;
 
     public Grade(int sid) {
         this.sid = sid;
-        createView();
-        loadTerms();
-        if (!termSelect.getItems().isEmpty()) {
-            termSelect.getSelectionModel().select(0);
-            refreshData();
-        }
-    }
-
-    private void createView() {
-        Label title = new Label("成绩管理");
-        title.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-padding: 0 0 10px 0;");
-
-        HBox termBar = new HBox(10);
-        Label termLabel = new Label("选择学期");
-        termSelect.setPrefWidth(180);
-        termBar.getChildren().addAll(termLabel, termSelect);
-
-        gradeTable = new TableView<>();
-        gradeTable.setPrefWidth(700);
-        gradeTable.setPrefHeight(260);
-
-        TableColumn<GradeData, Integer> cidCol = new TableColumn<>("课号");
-        cidCol.setPrefWidth(100);
-        cidCol.setCellValueFactory(new PropertyValueFactory<>("cid"));
-
-        TableColumn<GradeData, String> cnameCol = new TableColumn<>("课程号");
-        cnameCol.setPrefWidth(120);
-        cnameCol.setCellValueFactory(new PropertyValueFactory<>("cname"));
-
-        TableColumn<GradeData, Integer> tidCol = new TableColumn<>("教师号");
-        tidCol.setPrefWidth(100);
-        tidCol.setCellValueFactory(new PropertyValueFactory<>("tid"));
-
-        TableColumn<GradeData, String> tnameCol = new TableColumn<>("教师名称");
-        tnameCol.setPrefWidth(120);
-        tnameCol.setCellValueFactory(new PropertyValueFactory<>("tname"));
-
-        TableColumn<GradeData, Integer> creditCol = new TableColumn<>("学分");
-        creditCol.setPrefWidth(80);
-        creditCol.setCellValueFactory(new PropertyValueFactory<>("credit"));
-
-        TableColumn<GradeData, Double> gradeCol = new TableColumn<>("成绩");
-        gradeCol.setPrefWidth(100);
-        gradeCol.setCellValueFactory(new PropertyValueFactory<>("grade"));
-
-        TableColumn<GradeData, Void> opCol = new TableColumn<>("");
-        opCol.setPrefWidth(80);
-        opCol.setCellFactory(new Callback<TableColumn<GradeData, Void>, TableCell<GradeData, Void>>() {
-            public TableCell<GradeData, Void> call(TableColumn<GradeData, Void> col) {
-                return new TableCell<GradeData, Void>() {
-                    private final Button viewBtn = new Button("查看");
-                    {
-                        viewBtn.setStyle("-fx-background-color: transparent; -fx-border-color: #e9ecef; -fx-padding: 2px 8px;");
-                        viewBtn.setOnAction(e -> {
-                            GradeData g = getTableView().getItems().get(getIndex());
-                            System.out.println("查看成绩:" + g.getCname() + "=" + g.getGrade());
-                        });
-                    }
-                    @Override
-                    protected void updateItem(Void item, boolean empty) {
-                        super.updateItem(item, empty);
-                        setGraphic(empty ? null : viewBtn);
-                    }
-                };
-            }
-        });
-
-        gradeTable.getColumns().addAll(cidCol, cnameCol, tidCol, tnameCol, creditCol, gradeCol, opCol);
-
-        HBox pagination = createPagination();
-
-        avgLabel.setStyle("-fx-padding: 10px 0 0 0;");
-
-        this.setSpacing(10);
+        this.setSpacing(15);
         this.setPadding(new Insets(20));
-        this.getChildren().addAll(title, termBar, gradeTable, avgLabel, pagination);
         StyleUtils.useCss(this, "/style.css");
 
-        termSelect.setOnAction(e -> {
+        // 1. Term Selection
+        HBox topBox = new HBox(10);
+        Label termLabel = new Label("选择学期");
+        termLabel.setStyle("-fx-font-size: 14px;");
+        termCombo = new ComboBox<>();
+        termCombo.setPrefWidth(200);
+
+        // Load terms
+        List<String> terms = StuMysql.queryTerms(sid);
+        termCombo.getItems().addAll(terms);
+        if (!terms.isEmpty()) {
+            termCombo.getSelectionModel().select(0);
+        }
+
+        termCombo.setOnAction(e -> loadGrades());
+        topBox.getChildren().addAll(termLabel, termCombo);
+
+        // 2. Table
+        createGradeTable();
+
+        // 3. Average Grade Label
+        avgLabel = new Label("平均成绩：0.0");
+        avgLabel.setStyle("-fx-font-size: 16px; -fx-padding: 10 0 0 0;");
+
+        // 4. Pagination
+        pagination = createPagination();
+
+        this.getChildren().addAll(topBox, gradeTable, avgLabel, pagination);
+
+        // Initial load
+        loadGrades();
+    }
+
+    private void createGradeTable() {
+        gradeTable = new TableView<>();
+        gradeTable.setPrefHeight(300);
+
+        TableColumn<GradeData, Integer> cidCol = new TableColumn<>("课号");
+        cidCol.setCellValueFactory(new PropertyValueFactory<>("cid"));
+        cidCol.setPrefWidth(100);
+
+        TableColumn<GradeData, String> cnameCol = new TableColumn<>("课程号");
+        cnameCol.setCellValueFactory(new PropertyValueFactory<>("cname"));
+        cnameCol.setPrefWidth(150);
+
+        TableColumn<GradeData, Integer> tidCol = new TableColumn<>("教师号");
+        tidCol.setCellValueFactory(new PropertyValueFactory<>("tid"));
+        tidCol.setPrefWidth(100);
+
+        TableColumn<GradeData, String> tnameCol = new TableColumn<>("教师名称");
+        tnameCol.setCellValueFactory(new PropertyValueFactory<>("tname"));
+        tnameCol.setPrefWidth(120);
+
+        TableColumn<GradeData, Integer> creditCol = new TableColumn<>("学分");
+        creditCol.setCellValueFactory(new PropertyValueFactory<>("credit"));
+        creditCol.setPrefWidth(80);
+
+        TableColumn<GradeData, String> gradeCol = new TableColumn<>("成绩");
+        gradeCol.setCellValueFactory(new PropertyValueFactory<>("gradeStr"));
+        gradeCol.setPrefWidth(100);
+
+        gradeTable.getColumns().addAll(cidCol, cnameCol, tidCol, tnameCol, creditCol, gradeCol);
+    }
+
+    private void loadGrades() {
+        String selectedTerm = termCombo.getValue();
+        if (selectedTerm != null) {
+            allGrades = StuMysql.queryGrade(sid, selectedTerm);
+            calculateAverage();
             currentPage = 1;
-            refreshData();
-            updatePaginationBtn(pagination, currentPage);
-        });
+            loadPageData(currentPage);
+            updatePaginationBtn(currentPage);
+        }
     }
 
-    private void loadTerms() {
-        List<String> terms = StuMysql.queryTermsBySid(sid);
-        termSelect.getItems().setAll(terms);
-    }
-
-    private void refreshData() {
-        String term = termSelect.getSelectionModel().getSelectedItem();
-        if (term == null) {
-            gradeTable.getItems().clear();
-            avgLabel.setText("平均成绩：-");
+    private void calculateAverage() {
+        if (allGrades == null || allGrades.isEmpty()) {
+            avgLabel.setText("平均成绩：0.0");
             return;
         }
-        allGrades = StuMysql.queryGradesBySidAndTerm(sid, term);
-        loadPageData(currentPage);
-        updateAvgLabel();
+        double total = 0;
+        int count = 0;
+        for (GradeData g : allGrades) {
+            if (g.getGrade() != -1.0f) {
+                total += g.getGrade();
+            }
+            count++; // Always count for average as per the image's 49.09... result?
+            // Actually, if count is total number of courses, we use count.
+        }
+        double avg = count > 0 ? total / count : 0;
+        avgLabel.setText("平均成绩：" + avg);
     }
 
     private void loadPageData(int page) {
-        int from = (page - 1) * pageSize;
-        int to = Math.min(from + pageSize, allGrades.size());
-        if (from >= to) {
-            gradeTable.getItems().clear();
+        if (allGrades == null)
             return;
+        int start = (page - 1) * pageSize;
+        int end = Math.min(start + pageSize, allGrades.size());
+        gradeTable.getItems().clear();
+        if (start < allGrades.size()) {
+            gradeTable.getItems().addAll(allGrades.subList(start, end));
         }
-        gradeTable.getItems().setAll(allGrades.subList(from, to));
     }
 
     private HBox createPagination() {
-        HBox pagination = new HBox(10);
-        pagination.setPadding(new Insets(6, 0, 0, 0));
+        HBox hbox = new HBox(10);
+        hbox.setPadding(new Insets(10, 0, 0, 0));
 
-        Button prev = new Button("<");
-        prev.setStyle("-fx-background-color: transparent; -fx-border-color: #e9ecef; -fx-padding: 2px 8px;");
-        prev.setOnAction(e -> {
+        Button prevBtn = new Button("<");
+        prevBtn.setStyle("-fx-background-color: transparent; -fx-border-color: #e9ecef; -fx-padding: 2px 8px;");
+        prevBtn.setOnAction(e -> {
             if (currentPage > 1) {
                 currentPage--;
                 loadPageData(currentPage);
-                updatePaginationBtn(pagination, currentPage);
+                updatePaginationBtn(currentPage);
             }
         });
 
-        Button cur = new Button(String.valueOf(currentPage));
-        cur.setStyle("-fx-background-color: #1890ff; -fx-text-fill: white; -fx-padding: 2px 8px;");
+        Button pageBtn = new Button("1");
+        pageBtn.setStyle("-fx-background-color: #1890ff; -fx-text-fill: white; -fx-padding: 2px 8px;");
 
-        Button next = new Button(">");
-        next.setStyle("-fx-background-color: transparent; -fx-border-color: #e9ecef; -fx-padding: 2px 8px;");
-        next.setOnAction(e -> {
+        Button nextBtn = new Button(">");
+        nextBtn.setStyle("-fx-background-color: transparent; -fx-border-color: #e9ecef; -fx-padding: 2px 8px;");
+        nextBtn.setOnAction(e -> {
             int totalPage = (int) Math.ceil((double) allGrades.size() / pageSize);
             if (currentPage < totalPage) {
                 currentPage++;
                 loadPageData(currentPage);
-                updatePaginationBtn(pagination, currentPage);
+                updatePaginationBtn(currentPage);
             }
         });
 
-        pagination.getChildren().addAll(prev, cur, next);
-        return pagination;
+        hbox.getChildren().addAll(prevBtn, pageBtn, nextBtn);
+        return hbox;
     }
 
-    private void updatePaginationBtn(HBox pagination, int page) {
-        pagination.getChildren().set(1, new Button(String.valueOf(page)));
-        ((Button) pagination.getChildren().get(1))
-                .setStyle("-fx-background-color: #1890ff; -fx-text-fill: white; -fx-padding: 2px 8px;");
-    }
-
-    private void updateAvgLabel() {
-        List<Double> grades = allGrades.stream()
-                .map(GradeData::getGrade)
-                .filter(g -> g != null)
-                .collect(Collectors.toList());
-        if (grades.isEmpty()) {
-            avgLabel.setText("平均成绩：-");
-            return;
-        }
-        double sum = 0.0;
-        for (double g : grades) sum += g;
-        double avg = sum / grades.size();
-        avgLabel.setText("平均成绩：" + String.format("%.2f", avg));
+    private void updatePaginationBtn(int page) {
+        Button pageBtn = (Button) pagination.getChildren().get(1);
+        pageBtn.setText(String.valueOf(page));
     }
 
     public static class GradeData {
@@ -202,9 +172,9 @@ public class Grade extends VBox {
         private int tid;
         private String tname;
         private int credit;
-        private Double grade;
+        private float grade;
 
-        public GradeData(int cid, String cname, int tid, String tname, int credit, Double grade) {
+        public GradeData(int cid, String cname, int tid, String tname, int credit, float grade) {
             this.cid = cid;
             this.cname = cname;
             this.tid = tid;
@@ -213,11 +183,35 @@ public class Grade extends VBox {
             this.grade = grade;
         }
 
-        public int getCid() { return cid; }
-        public String getCname() { return cname; }
-        public int getTid() { return tid; }
-        public String getTname() { return tname; }
-        public int getCredit() { return credit; }
-        public Double getGrade() { return grade; }
+        public int getCid() {
+            return cid;
+        }
+
+        public String getCname() {
+            return cname;
+        }
+
+        public int getTid() {
+            return tid;
+        }
+
+        public String getTname() {
+            return tname;
+        }
+
+        public int getCredit() {
+            return credit;
+        }
+
+        public float getGrade() {
+            return grade;
+        }
+
+        // For TableView display, handle NULL/0 grade
+        public String getGradeStr() {
+            if (grade == -1.0f)
+                return "";
+            return String.valueOf(grade);
+        }
     }
 }

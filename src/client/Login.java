@@ -1,6 +1,7 @@
 package client;
 
 import Student.Student;
+import Teacher.Teacher;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Parent;
@@ -37,18 +38,28 @@ public class Login {
         Label msgLabel = new Label();
 
         loginBtn.setOnAction(e -> {
-        	int userid = Integer.parseInt(userField.getText());
-            String pass = passField.getText();
+            try {
+                int userid = Integer.parseInt(userField.getText());
+                String pass = passField.getText();
 
-            if (StuMysql.queryList(userid,pass)==true) {
-                msgLabel.setText("登录成功");
-                msgLabel.setStyle("-fx-text-fill: green;");
-                // 切换到主界面
-                Student student = new Student(stage,userid);
-                stage.setScene(new Scene(student.getView(), 1000, 700));
-                stage.setTitle("学生界面");
-            } else {
-                msgLabel.setText("用户名或密码错误");
+                if (StuMysql.queryList(userid, pass)) {
+                    msgLabel.setText("登录成功");
+                    msgLabel.setStyle("-fx-text-fill: green;");
+                    Student student = new Student(stage, userid);
+                    stage.setScene(new Scene(student.getView(), 1000, 700));
+                    stage.setTitle("学生系统 - " + StuMysql.querySname(userid));
+                } else if (StuMysql.queryTeacherLogin(userid, pass)) {
+                    msgLabel.setText("登录成功");
+                    msgLabel.setStyle("-fx-text-fill: green;");
+                    Teacher teacher = new Teacher(stage, userid);
+                    stage.setScene(new Scene(teacher.getView(), 1200, 800));
+                    stage.setTitle("教师系统 - " + StuMysql.queryTname(userid));
+                } else {
+                    msgLabel.setText("用户名或密码错误");
+                    msgLabel.setStyle("-fx-text-fill: red;");
+                }
+            } catch (NumberFormatException ex) {
+                msgLabel.setText("请输入正确的数字ID");
                 msgLabel.setStyle("-fx-text-fill: red;");
             }
         });

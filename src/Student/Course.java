@@ -165,6 +165,7 @@ public class Course extends VBox{
 	        private String name;    // 课程号
 	        private int teacherId;  // 教师号
 	        private String teacherName; // 教师名称
+	        private int credit;     // 学分
 
 	        public CourseData(int id, String name, int teacherId, String teacherName) {
 	            this.id = id;
@@ -172,11 +173,20 @@ public class Course extends VBox{
 	            this.teacherId = teacherId;
 	            this.teacherName = teacherName;
 	        }
+	        
+	        public CourseData(int id, String name, int teacherId, String teacherName, int credit) {
+	            this.id = id;
+	            this.name = name;
+	            this.teacherId = teacherId;
+	            this.teacherName = teacherName;
+	            this.credit = credit;
+	        }
 
 	        // 保留public Getter方法
 	        public int getId() { return id; }
 	        public String getName() { return name; }
 	        public int getTeacherId() { return teacherId; }
 	        public String getTeacherName() { return teacherName; }
+	        public int getCredit() { return credit; }
 	    }
 }
